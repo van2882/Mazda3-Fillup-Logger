@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14110f">
+<title>Fill-Up Logger</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="dot"></span><h1>Fill-Up Logger</h1></div>
+  <div id="net" class="chip">online</div>
+</header>
+
+<main>
+  <section class="card">
+    <h2><span class="n">1</span> Photos</h2>
+    <div class="tiles">
+      <label class="tile" id="tile-receipt">
+        <input type="file" accept="image/*" id="in-receipt">
+        <img id="img-receipt" alt="" hidden>
+        <div class="tile-body"><b>Receipt</b><small>tap to add</small></div>
+        <span class="tick" hidden>&#10003;</span>
+      </label>
+      <label class="tile" id="tile-dash">
+        <input type="file" accept="image/*" id="in-dash">
+        <img id="img-dash" alt="" hidden>
+        <div class="tile-body"><b>Dashboard</b><small>trip meter A</small></div>
+        <span class="tick" hidden>&#10003;</span>
+      </label>
+    </div>
+    <div id="status" class="status" role="status">Add the receipt and the dashboard photo. The numbers are read on your phone.</div>
+    <div class="bar" id="bar" hidden><i id="barfill"></i></div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">2</span> Check the numbers</h2>
+    <form id="f" autocomplete="off">
+      <label class="fld"><span>Date</span><input id="date" type="date" required></label>
+      <label class="fld"><span>Location</span><input id="location" list="locs" required placeholder="711 Rockbank"></label>
+      <datalist id="locs"></datalist>
+      <div class="row">
+        <label class="fld"><span>Price $/L</span><input id="price" inputmode="decimal" required placeholder="2.409"></label>
+        <label class="fld"><span>Volume L</span><input id="litres" inputmode="decimal" required placeholder="43.03"></label>
+      </div>
+      <div class="row">
+        <label class="fld"><span>Amount $</span><input id="amount" inputmode="decimal" required placeholder="103.66"></label>
+        <label class="fld"><span>Trip A km</span><input id="trip" inputmode="decimal" required placeholder="631.9"></label>
+      </div>
+      <label class="chk"><input type="checkbox" id="notfull"> <span>Tank not filled to the top</span></label>
+      <div id="warn" class="warn" hidden></div>
+      <button id="save" type="submit" class="primary">Log fill-up</button>
+    </form>
+  </section>
+
+  <section class="card" id="recent-card" hidden>
+    <h2>Recent</h2>
+    <ul id="recent"></ul>
+    <p class="hint">Mistakes: fix them in the hidden "Form Responses 1" tab of your sheet.</p>
+  </section>
+</main>
+
+<script src="vendor/tesseract.min.js"></script>
+<script src="config.js"></script>
+<script src="parse.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
