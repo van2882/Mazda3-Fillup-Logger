@@ -1,4 +1,4 @@
-const CACHE = 'fillup-v1';
+const CACHE = 'fillup-v2';
 const ASSETS = ['./','index.html','style.css','app.js','parse.js','config.js','manifest.webmanifest',
   'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png',
   'fonts/barlow-latin-400-normal.woff2','fonts/barlow-latin-500-normal.woff2','fonts/barlow-condensed-latin-600-normal.woff2','fonts/barlow-condensed-latin-700-normal.woff2','fonts/ibm-plex-mono-latin-500-normal.woff2',

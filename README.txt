@@ -25,6 +25,9 @@ INSTALL ON YOUR PHONE
  offline: fill-ups are kept on the phone and sent when you are back online.
 
 NOTES
+ - Dashboard photo: get Trip A in the shot, as straight-on as you can, without glare on it. It can be
+   anywhere in the photo. If the app is unsure (or wrong), tap "Wrong number? Tap Trip A on the photo"
+   and tap the number: it then reads just that spot.
  - Always check the numbers against the photos. Warnings show when price x litres does not match the amount.
  - If you log a mistake, fix it in the hidden "Form Responses 1" tab of your sheet.
  - To change the form or field IDs, edit config.js.

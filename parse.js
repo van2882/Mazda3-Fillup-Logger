@@ -113,9 +113,71 @@
 
   // Trip meter text like "A 631.9km" (OCR may drop the k or m)
   function parseTrip(text) {
-    const t = text.replace(/\u00a0/g, ' ');
-    const m = t.match(/(\d{1,4})\s*[.,]\s*(\d)\s*[kKmM]/);
-    return m ? parseFloat(m[1] + '.' + m[2]) : null;
+    const c = parseDash(text).filter((x) => x.kind === 'trip').sort((a, b) => b.w - a.w)[0];
+    return c ? c.value : null;
+  }
+
+  // Digit look-alikes OCR produces on dashboard fonts, only fixed next to other digits
+  function fixDashDigits(t) {
+    return t.replace(/(?<=\d|[.,])[Oo]|[Oo](?=\d|[.,]\d)/g, '0')
+      .replace(/(?<=\d|[.,])[Il|!]|[Il|!](?=\d)/g, '1')
+      .replace(/(?<=\d)[Ss$]|[Ss$](?=\d)/g, '5')
+      .replace(/(?<=\d)B|B(?=\d)/g, '8')
+      .replace(/(?<=\d)Z|Z(?=\d)/g, '2');
+  }
+
+  /* Read trip / odometer candidates from one OCR line of a dashboard.
+     Mazda shows "TRIP A 631.9 km" (always one decimal) and "ODO 45210 km" (no decimal).
+     Returns [{kind:'trip'|'odo', value, w}] where w is how sure the pattern is. */
+  function parseDash(text) {
+    const out = [];
+    const lines = String(text).replace(/\u00a0/g, ' ').split(/\n/);
+    for (let raw of lines) {
+      const l = fixDashDigits(raw);
+      const tripAnchor = /TR[I1l]P|\bA\b|^\s*A\s*\d/i.test(l) && !/ODO|0D0/i.test(l.split(/\d/)[0] || '');
+      const odoAnchor = /\b[O0]D[O0]\b|ODO/i.test(l);
+      // ODO first so its digits are not read as a trip
+      let odoVal = null;
+      const om = l.match(/[O0]D[O0]\D{0,6}(\d[\d ,]{2,7}\d)(?!\s*[.,]\s*\d)/i) || l.match(/(?:^|[^\d.,])(\d{5,6})\s*k?m\b/i);
+      if (om) { odoVal = parseInt(om[1].replace(/[ ,]/g, ''), 10); if (odoVal >= 100 && odoVal < 1e6) out.push({ kind: 'odo', value: odoVal, w: odoAnchor ? 3 : 1 }); }
+      if (odoAnchor && !tripAnchor) continue;
+      // x.y with optional km; skip fuel economy (L/100km), temperature, clock
+      const re = /(\d{1,4})\s?[.,]\s?(\d)(?!\d)(\s*k?m\b)?(\s*[lL]\s*\/|\s*°|\s*:)?/g;
+      let m, found = false;
+      while ((m = re.exec(l))) {
+        if (m[4]) continue;
+        const v = parseFloat(m[1] + '.' + m[2]);
+        if (!(v > 0 && v < 2000)) continue;
+        out.push({ kind: 'trip', value: v, w: (tripAnchor ? 3 : 0) + (m[3] ? 2 : 0) + 1 });
+        found = true;
+      }
+      // Decimal point read as a space: "TRIP A 631 9 km"
+      if (!found && tripAnchor) {
+        const sm = l.match(/(\d{1,4}) (\d)\s*k?m\b/i);
+        if (sm) { out.push({ kind: 'trip', value: parseFloat(sm[1] + '.' + sm[2]), w: 2 }); found = true; }
+      }
+      // Decimal point lost: "TRIP A 6319 km" -> 631.9
+      if (!found && tripAnchor) {
+        const dm = l.match(/(?:TR[I1l]P\s*)?A?\D{0,4}(\d{2,5})\s*k?m?\b/i);
+        if (dm && +dm[1] !== odoVal) { const v = parseFloat(dm[1].slice(0, -1) + '.' + dm[1].slice(-1)); if (v > 0 && v < 2000) out.push({ kind: 'trip', value: v, w: 1.5 }); }
+      }
+    }
+    return out;
+  }
+
+  // Combine dashboard candidates (each {value, w}) into one trip reading.
+  // `expect` (optional) = {litres}: trips that give a sane km/L for that fill get a bonus.
+  function pickTrip(cands, expect) {
+    const c = new Map();
+    for (const x of cands) {
+      if (x.kind && x.kind !== 'trip') continue;
+      let w = x.w || 1;
+      if (expect && expect.litres > 0) { const kpl = x.value / expect.litres; w *= kpl >= 6 && kpl <= 30 ? 1.5 : 0.5; }
+      c.set(x.value, (c.get(x.value) || 0) + w);
+    }
+    let best = null, bw = 0, tot = 0;
+    for (const [v, w] of c) { tot += w; if (w > bw) { best = v; bw = w; } }
+    return best == null ? null : { value: best, votes: Math.round(bw * 10) / 10, total: Math.round(tot * 10) / 10 };
   }
 
   // Score a receipt parse: more complete + consistent = better
@@ -137,7 +199,7 @@
     return best == null ? null : { value: best, votes: n, total: values.length };
   }
 
-  const api = { scoreReceipt, voteTrip, parseReceipt, parseTrip, parseDate, parseLocation, brandOf };
+  const api = { scoreReceipt, voteTrip, parseReceipt, parseTrip, parseDash, pickTrip, fixDashDigits, parseDate, parseLocation, brandOf };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.FuelParse = api;
 })(typeof self !== 'undefined' ? self : this);
